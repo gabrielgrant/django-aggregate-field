@@ -1,0 +1,102 @@
+django-aggregate-field provides a nice way to access commonly-used
+aggregations with a model-field-like interface
+
+It is common to add "property" descriptors or accessor functions onto
+Django models to make access to abstract access regularly-used,
+property-like aggregations. This works for access from the instantiated
+model, but is less not useful to access while performing queries.
+
+
+Take, for example, a series of "events" which are grouped into "sessions".
+We can define the start time of the session (i.e. the time of the
+session's earliest event). A "start" property could be added:
+
+
+    from django.db import models
+
+    from django.contrib.auth.models import User
+
+    class Event(models.Model):
+        time = models.DateTimeField()
+        session = models.ForeignKey('Session', related_name='events', null=True)
+
+    class Session(models.Model):
+        user = models.ForeignKey(User, related_name='sessions', null=True)
+        @property
+        def start(self):
+            return self.events.aggregate(start=models.Min('time'))['start']
+
+
+But this doesn't allow filtering by start time -- doing so requires writing out
+the annotation each time:
+
+    Session.objects.annotate(start=models.Min('events__time')).filter(start__gt=yesterday)
+
+or
+
+    Event.objects.annotate(start=models.Min('session__events__time')).filter(start=now)
+
+or
+
+    user.sessions.all().annotate(start=models.Min('events__time')).filter(start=now)
+
+or
+
+    User.objects.annotate(start=models.Min('sessions__events__time')).filter(start=now)
+
+Not very pretty.
+
+django-aggregate-field fixes this. Simplify the model definition:
+
+    class Session(models.Model):
+        user = models.ForeignKey(User, related_name='km_sessions', null=True)
+        start = AggregateField(models.Min('time'))
+
+And now the attribute can be used as any other field would:
+
+    Session.objects.get(pk=1).start           # Simple attribute access.
+    Event.objects.filter(session__start=now)  # Standard, forward and
+    user.sessions.filter(start__gt=today)     # either type of backwards
+    User.objects.filter(sessions__start=now)  # chainable querying.
+    u.sessions.filter(start=now)
+
+
+Installation
+
+    pip install django-aggregate-field
+
+then add 'aggregate_field' to your list of INSTALLED_APPS in settings.py
+
+
+Notes
+
+By default, accessing the AggregateField as an attribute will perform
+the query every time and any value assigned to the attribute will be
+silently ignored. On the upside, this default is safe, but it can also
+be slow and result in redundant queries. This default behaviour can be
+changed by passing `cache=True` to the AggregateField at creation time.
+When caching is enabled, any value assigned or retreived from the database
+will be cached. The cache can be cleared by deleting the attribute.
+
+The caching behaviour *should* work, but it is unfortunately untested at
+the moment. Patches welcome!
+
+Also, on the topic of testing: the tests have been run on Django 1.4
+beta 1. It is quite possible things will break on older versions.
+Supporting Django 1.3 would be nice, but if there is much effort
+or added complexity needed to work on versions 1.2 and beyond, I'm
+likely not going to do it.
+
+With Django version 1.4, datetimes are made timezone-aware by default,
+but unfortunately these timezone-aware datetimes do not work with
+aggregation, so until [the bug][1] is fixed, you should keep
+`USE_TZ = False` in your `settings.py`
+
+[1]: https://code.djangoproject.com/ticket/17728
+
+Finally, for the sake of full disclosure: yes, this code does some
+monkey patching around query creation that is less-than-ideal, but
+necessary, I believe, to have the desired API. Hopefully something
+to enable this level of control over query generation will make it
+into core in the not-so-distant future.
+

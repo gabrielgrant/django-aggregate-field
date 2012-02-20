@@ -1,0 +1,19 @@
+
+0.1.3
+
+- Caching (untested)
+
+
+0.1.2
+
+- Support for the second type (object-wise) reverse lookups
+
+
+0.1.1
+
+- Object/lookup chaining
+
+
+0.1.0
+
+- Initial release
