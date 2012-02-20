@@ -112,7 +112,7 @@ TEMPLATE_DIRS = (
 )
 
 INSTALLED_APPS = (
-    'aggregate_fields',
+    'aggregate_field',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',

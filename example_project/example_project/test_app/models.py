@@ -2,7 +2,7 @@ from django.db import models
 
 from django.contrib.auth.models import User
 
-from aggregate_fields.fields import AggregateField
+from aggregate_field.fields import AggregateField
 
 class Event(models.Model):
     time = models.DateTimeField()

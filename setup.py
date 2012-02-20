@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='django-aggregate-field',
-    version='0.1.3',
+    version='0.1.4',
     author='Gabriel Grant',
     author_email='g@briel.ca',
     description='Access commonly-used aggregations with a model-field-like interface',
